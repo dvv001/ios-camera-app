@@ -78,10 +78,11 @@ enum CapabilityProbe {
         var maxH: Int32 = 0
         if let wide = backDevices.first(where: { $0.deviceType == .builtInWideAngleCamera }) {
             for format in wide.formats {
-                let dims = format.highResolutionStillImageDimensions
-                if Int64(dims.width) * Int64(dims.height) > Int64(maxW) * Int64(maxH) {
-                    maxW = dims.width
-                    maxH = dims.height
+                for dims in format.supportedMaxPhotoDimensions {
+                    if Int64(dims.width) * Int64(dims.height) > Int64(maxW) * Int64(maxH) {
+                        maxW = dims.width
+                        maxH = dims.height
+                    }
                 }
             }
         }

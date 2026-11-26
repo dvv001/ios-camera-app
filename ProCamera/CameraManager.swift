@@ -13,7 +13,7 @@ enum FlashOption: CaseIterable {
     case auto
     case on
 
-    var settingsMode: AVCapturePhotoSettings.FlashMode {
+    var settingsMode: AVCaptureDevice.FlashMode {
         switch self {
         case .off: return .off
         case .auto: return .auto
@@ -232,7 +232,7 @@ final class CameraManager: NSObject, ObservableObject {
         publish { self.exposureBias = clamped }
         sessionQueue.async {
             guard (try? device.lockForConfiguration()) != nil else { return }
-            device.exposureTargetBias = clamped
+            device.setExposureTargetBias(clamped, completionHandler: nil)
             device.unlockForConfiguration()
         }
     }

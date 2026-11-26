@@ -16,6 +16,8 @@ targets:
       path: ProCamera/Info.plist
       properties:
         CFBundleDisplayName: ProCamera
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSCameraUsageDescription: ProCamera 需要使用相机来拍照和录像。
         NSMicrophoneUsageDescription: ProCamera 需要使用麦克风为录像录音。
         NSPhotoLibraryAddUsageDescription: ProCamera 需要把照片保存到你的相册。

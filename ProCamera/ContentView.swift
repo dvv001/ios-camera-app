@@ -5,6 +5,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var camera = CameraManager()
     @State private var showCapability = false
+    @State private var showGallery = false
     @State private var pinchBase: CGFloat = 1
 
     var body: some View {
@@ -43,6 +44,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showCapability) {
             capabilitySheet
+        }
+        .sheet(isPresented: $showGallery) {
+            GalleryView(items: camera.recentItems)
         }
     }
 
@@ -174,17 +178,22 @@ struct ContentView: View {
     }
 
     private var thumbnail: some View {
-        Group {
-            if let image = camera.lastThumbnail {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Color.white.opacity(0.15)
+        Button {
+            showGallery = true
+        } label: {
+            Group {
+                if let image = camera.lastThumbnail {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Color.white.opacity(0.15)
+                }
             }
+            .frame(width: 48, height: 48)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
-        .frame(width: 48, height: 48)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .disabled(camera.recentItems.isEmpty)
     }
 
     private var shutterButton: some View {

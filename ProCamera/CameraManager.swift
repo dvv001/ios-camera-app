@@ -64,6 +64,7 @@ final class CameraManager: NSObject, ObservableObject {
     @Published private(set) var biasRange: ClosedRange<Float> = -2...2
     @Published private(set) var isRecording = false
     @Published var lastThumbnail: UIImage?
+    @Published private(set) var recentItems: [CapturedItem] = []
     @Published var notice: String?
 
     // MARK: - 生命周期
@@ -317,7 +318,11 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         }
         guard let data = photo.fileDataRepresentation() else { return }
         if let image = UIImage(data: data) {
-            publish { self.lastThumbnail = image }
+            publish {
+                self.lastThumbnail = image
+                self.recentItems.insert(CapturedItem(kind: .photo(data), thumbnail: image), at: 0)
+                self.trimRecentItems()
+            }
         }
         PhotoSaver.savePhoto(data: data) { [weak self] ok in
             if !ok {
@@ -342,13 +347,44 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
             }
             return
         }
+        // 先在 App 沙盒留一份副本供画廊回放（临时文件存完相册后会删）
+        let storedURL = storedCopy(of: outputFileURL)
         if let thumb = thumbnail(forVideoAt: outputFileURL) {
-            publish { self.lastThumbnail = thumb }
+            publish {
+                self.lastThumbnail = thumb
+                if let storedURL = storedURL {
+                    self.recentItems.insert(CapturedItem(kind: .video(storedURL), thumbnail: thumb), at: 0)
+                    self.trimRecentItems()
+                }
+            }
         }
-        PhotoSaver.saveVideo(fileURL: outputFileURL) { ok in
+        PhotoSaver.saveVideo(fileURL: outputFileURL) { [weak self] ok in
             try? FileManager.default.removeItem(at: outputFileURL)
             if !ok {
-                self.publish { self.notice = "录像未能存入相册，请检查相册权限。" }
+                self?.publish { self?.notice = "录像未能存入相册，请检查相册权限。" }
+            }
+        }
+    }
+
+    private func storedCopy(of url: URL) -> URL? {
+        let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("ProCameraCaptures")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let dest = dir.appendingPathComponent(url.lastPathComponent)
+        do {
+            try FileManager.default.copyItem(at: url, to: dest)
+            return dest
+        } catch {
+            return nil
+        }
+    }
+
+    /// 只保留最近 12 项（须在主线程调用）
+    private func trimRecentItems() {
+        while recentItems.count > 12 {
+            let removed = recentItems.removeLast()
+            if case .video(let url) = removed.kind {
+                try? FileManager.default.removeItem(at: url)
             }
         }
     }
